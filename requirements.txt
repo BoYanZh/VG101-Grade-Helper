@@ -1,0 +1,4 @@
+requests
+canvasapi
+beautifulsoup4
+GitPython

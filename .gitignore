@@ -1,0 +1,9 @@
+__pycache__
+.vscode/
+hwrepos/
+projrepos/
+indv/
+*.log
+hgroups.json
+scores.json
+settings.py
