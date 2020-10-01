@@ -150,11 +150,13 @@ class GiteaWorker():
         else:
             repo = git.Repo(os.path.join('projrepos', f'p{projNum}', repoName))
             repo.git.fetch()
-            if 'master' not in [branch.name for branch in repo.branches]:
+            remoteBranches = [ref.name for ref in repo.remote().refs]
+            if 'origin/master' not in remoteBranches:
                 self.logger.warning(f"{repoName} branch master missing")
                 return
-            repo.git.reset('--hard')
+            repo.git.checkout(f"master", "-f")
             repo.git.pull("origin", "master", "--rebase", "-f")
+            repo.git.reset('--hard')
         if not list(
                 filter(lambda x: x.lower().startswith('readme'),
                        os.listdir(repoDir))):
