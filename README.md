@@ -13,7 +13,7 @@ $ vim hgroups.json
 $ mv settings.example.py settings.py
 $ vim settings.py
 $ ./VG101GradeHelper.py --help
-usage: VG101GradeHelper.py [--help] [-h HW] [-p PROJ] [-m MS] [-a] [-s] [-t] [-i] [-g] [-j] [-u]
+usage: VG101GradeHelper.py [--help] [-h HW] [-p PROJ] [-m MS] [-a] [-s] [-t] [-d] [-i] [-g] [-j] [-u]
 
 optional arguments:
   --help                show this help message and exit
@@ -23,6 +23,7 @@ optional arguments:
   -a, --all             check all
   -s, --score           generate score
   -t, --tidy            check tidy
+  -d, --dir             create dir for indiviual submission
   -i, --indv            check indiviual submission
   -g, --group           check group submission
   -j, --joj             check joj score

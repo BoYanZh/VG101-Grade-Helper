@@ -22,6 +22,10 @@ def parse():
                         action='store_true',
                         help='generate score')
     parser.add_argument('-t', '--tidy', action='store_true', help='check tidy')
+    parser.add_argument('-d',
+                        '--dir',
+                        action='store_true',
+                        help='create dir for indiviual submission')
     parser.add_argument('-i',
                         '--indv',
                         action='store_true',
@@ -44,6 +48,7 @@ def parse():
         exit(0)
     if args.all:
         args.indv = True
+        args.dir = True
         args.group = True
         args.joj = True
         args.tidy = True

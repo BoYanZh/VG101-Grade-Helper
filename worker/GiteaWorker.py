@@ -1,4 +1,3 @@
-from logging import FATAL
 from shutil import ignore_patterns, copytree, rmtree
 from util import Logger
 import multiprocessing
@@ -55,10 +54,10 @@ class GiteaWorker():
                 repo.git.checkout(f"{stuID}", "-f")
                 repo.git.pull("origin", f"{stuID}", "--rebase", "-f")
                 repo.git.reset(f"origin/{stuID}", "--hard")
-                # copytree(os.path.join( 'hwrepos', repoName),
-                #          os.path.join( 'indv',
-                #                       f"{repoName} {stuID} {stuName}"),
-                #          ignore=ignore_patterns('.git'))
+                if self.args.dir:
+                    copytree(os.path.join('hwrepos', repoName),
+                            os.path.join('indv', f"{repoName} {stuID} {stuName}"),
+                            ignore=ignore_patterns('.git'))
                 if not os.path.exists(
                         os.path.join('hwrepos', repoName, f"h{hwNum}")):
                     self.logger.warning(
@@ -173,8 +172,9 @@ class GiteaWorker():
             self.logger.debug(f"{repoName} pull succeed")
 
     def checkIndv(self):
-        # if os.path.exists(os.path.join( 'indv')):
-        #     rmtree(os.path.join( 'indv'))
+        if self.args.dir:
+            if os.path.exists(os.path.join('indv')):
+                rmtree(os.path.join('indv'))
         hwNum, tidy = self.args.hw, self.args.tidy
         with multiprocessing.Pool(self.processCount) as p:
             res = p.starmap(self.checkIndvProcess,
