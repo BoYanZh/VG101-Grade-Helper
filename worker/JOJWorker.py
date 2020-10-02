@@ -54,16 +54,15 @@ class JOJWorker():
                 "#status > div.section__header > h1 > span:nth-child(2)"
             )[0].get_text().strip()
             if status not in ["Waiting", "Compiling", "Fetched", "Running"]:
-                self.logger.debug(status)
                 break
             else:
                 time.sleep(1)
+        if status == "Compile Error": return -1
         resultSet = soup.findAll("td", class_="col--status typo")
-        acCount = 0
-        for result in resultSet:
-            if "Accepted" == result.find_all('span')[1].get_text().strip():
-                acCount += 1
-        return acCount
+        return sum([
+            "Accepted" == result.find_all('span')[1].get_text().strip()
+            for result in resultSet
+        ])
 
     def getProblemResult(self,
                          homeworkID,
@@ -121,10 +120,12 @@ class JOJWorker():
             jojFailHomework = int(
                 sum([item[0] for item in scores]) < 0.5 *
                 sum([item[1] for item in scores]))
+            jojFailCompile = int(True in [item[0] == -1 for item in scores])
             for _, stuName in value:
                 res[stuName] = {
                     "jojFailHomework": jojFailHomework,
-                    "jojFailExercise": jojFailExercise
+                    "jojFailExercise": jojFailExercise,
+                    "jojFailCompile": jojFailCompile,
                 }
         return res
 

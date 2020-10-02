@@ -12,7 +12,8 @@ RUBRIC = {
     "groupFailSubmit": [-2.5, 'group submit absence, -2.5'],
     "groupUntidy": [-0.25, 'group branch untidy, -0.25'],
     "jojFailHomework": [-0.5, 'JOJ homework not passed, -0.5'],
-    "jojFailExercise": [-0.25, 'JOJ exercise not passed, -0.25']
+    "jojFailExercise": [-0.25, 'JOJ exercise not passed, -0.25'],
+    "jojFailCompile": [-1, 'JOJ fail to compile, -1'],
 }
 JOJ_INFO = {
     "lang":
