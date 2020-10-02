@@ -53,7 +53,8 @@ class JOJWorker():
             status = soup.select(
                 "#status > div.section__header > h1 > span:nth-child(2)"
             )[0].get_text().strip()
-            if status not in ["Waiting", "Compiling", "Pending", "Running"]:
+            if status not in ["Waiting", "Compiling", "Fetched", "Running"]:
+                self.logger.debug(status)
                 break
             else:
                 time.sleep(1)
@@ -76,21 +77,23 @@ class JOJWorker():
         while True:
             tryTime += 1
             response = self.uploadZip(homeworkID, problemID, zipPath, lang)
-            if response.status_code != 200:
-                self.logger.error(
-                    f"{groupName} h{hwNum} {fn} upload error, code {response.status_code}"
-                )
-            else:
+            if response.status_code == 200:
                 break
+            self.logger.error(
+                f"{groupName} h{hwNum} {fn} upload error, code {response.status_code}, url {response.url}"
+            )
+            time.sleep(1)
         self.logger.debug(
-            f"{groupName} h{hwNum} {fn} upload succeed {response.url}")
+            f"{groupName} h{hwNum} {fn} upload succeed, url {response.url}")
         return self.getProblemStatus(response.url)
 
     def checkGroupJOJProcess(self, groupNum, hwNum, jojInfo, fn, problemID):
         groupName = f"hgroup-{groupNum:02}"
         hwDir = os.path.join('hwrepos', groupName, f"h{hwNum}")
         filePath = os.path.join(hwDir, fn)
-        if not os.path.exists(filePath): return 0
+        if not os.path.exists(filePath):
+            self.logger.warning(f"{groupName} h{hwNum} {fn} not exist")
+            return 0
         with zipfile.ZipFile(filePath + ".zip", mode='w') as zf:
             zf.write(filePath, fn)
         res = self.getProblemResult(jojInfo["homeworkID"], problemID,
