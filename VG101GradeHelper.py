@@ -58,9 +58,10 @@ def parse():
 
 if __name__ == "__main__":
     hgroups = json.load(open("hgroups.json"))
+    names = [item[1] for value in hgroups.values() for item in value]
     pwd = os.getcwd()
     args = parse()
-    indvScores, groupScores, jojScores = None, None, None
+    indvScores, groupScores, jojScores = {}, {}, {}
     giteaWorker = GiteaWorker(args, hgroups,
                               [item[0] for item in JOJ_INFO["problemInfo"]])
     if args.indv:
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         jojScores = jojWorker.checkGroupJOJ(JOJ_INFO)
     if args.score:
         canvasWorker = CanvasWorker(args, RUBRIC, CANVAS_TOKEN, COURSE_ID,
-                                    indvScores, groupScores, jojScores)
+                                    names, indvScores, groupScores, jojScores)
         canvasWorker.exportScores("scores.json")
         if args.upload:
             canvasWorker.grade2Canvas()

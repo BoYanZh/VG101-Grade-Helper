@@ -9,6 +9,7 @@ class CanvasWorker():
                  rubric,
                  canvasToken,
                  courseID,
+                 names,
                  indvScores,
                  groupScores,
                  jojScores,
@@ -20,23 +21,26 @@ class CanvasWorker():
         self.users = self.course.get_users()
         self.assignments = self.course.get_assignments()
         self.logger = logger
-        if not indvScores or not groupScores or not jojScores:
-            raise Exception("Not enough scores")
-        self.scores = indvScores
-        for key, value in self.scores.items():
+        self.scores = {}
+        self.names = names
+        for key in names:
             self.scores[key] = {
-                **value,
-                **groupScores[key],
-                **jojScores[key]
+                **indvScores.get(key, {}),
+                **groupScores.get(key, {}),
+                **jojScores.get(key, {})
             }
 
     def generateHomeworkData(self, scoreInfo):
         score = 0
         comment = []
-        for key, value in self.rubric:
-            for _ in range(scoreInfo[key]):
-                score -= value[0]
-                comment.append(value[1])
+        for key, value in self.rubric.items():
+            for _ in range(scoreInfo.get(key, 0)):
+                score += value[0]
+                comment.append(f"{value[1]}, {value[0]}")
+        comment.extend(
+            scoreInfo.get("indvComment", []) +
+            scoreInfo.get("groupComment", []) +
+            scoreInfo.get("jojComment", []))
         if not comment: comment = ['good job']
         return {
             'submission': {
@@ -56,8 +60,10 @@ class CanvasWorker():
                                 lambda user: user.id == submission.user_id)
             if currentUser is None: continue
             name = currentUser.name.strip()
+            if name not in self.names: continue
             data = self.generateHomeworkData(self.scores[name])
-            submission.edit(**data)
+            self.logger.debug(data.__repr__())
+            # submission.edit(**data)
 
     def exportScores(self, fileName):
         json.dump(self.scores,

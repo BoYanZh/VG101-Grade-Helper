@@ -113,21 +113,29 @@ class JOJWorker():
                      for fn, problemID, _ in jojInfo["problemInfo"]])
             scores = [(scores[i], jojInfo["problemInfo"][i][2])
                       for i in range(len(scores))]
+            self.logger.info(f"{key} h{hwNum} score {scores.__repr__()}")
             jojFailExercise = min(
                 sum([
                     int(acCount < 0.25 * totalCount)
                     for acCount, totalCount in scores
                 ]), 2)
-            self.logger.info(f"{key} h{hwNum} score {scores.__repr__()}")
             jojFailHomework = int(
                 sum([item[0] for item in scores]) < 0.5 *
                 sum([item[1] for item in scores]))
             jojFailCompile = int(True in [item[0] == -1 for item in scores])
+            comments = []
+            if jojFailHomework + jojFailExercise + jojFailCompile != 0:
+                scoreComments = [
+                    f"{fn}: {scores[i][0]}/{scores[i][1]}"
+                    for i, (fn, _, _) in enumerate(jojInfo["problemInfo"])
+                ]
+                comments = [f"JOJ score: {','.join(scoreComments)}"]
             for _, stuName in value:
                 res[stuName] = {
                     "jojFailHomework": jojFailHomework,
                     "jojFailExercise": jojFailExercise,
                     "jojFailCompile": jojFailCompile,
+                    "jojComment": comments,
                 }
         return res
 

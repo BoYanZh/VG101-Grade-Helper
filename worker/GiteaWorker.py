@@ -43,6 +43,7 @@ class GiteaWorker():
             stuName: {
                 "indvFailSubmit": 0,
                 "indvUntidy": 0,
+                "indvComment": [],
             }
             for _, stuName in self.hgroups[repoName]
         }
@@ -52,9 +53,12 @@ class GiteaWorker():
                     self.logger.warning(
                         f"{repoName} {stuID} {stuName} branch missing")
                     scores[stuName]['indvFailSubmit'] = 1
+                    scores[stuName]['indvComment'].append(
+                        "individual branch missing")
                     continue
                 repo.git.checkout(f"{stuID}", "-f")
-                repo.git.pull("origin", f"{stuID}", "--rebase", "-f")
+                repo.git.reset('--hard')
+                repo.git.pull("origin", f"{stuID}", "-f")
                 repo.git.reset(f"origin/{stuID}", "--hard")
                 repo.git.clean("-d", "-f", "-x")
                 if self.args.dir:
@@ -67,15 +71,20 @@ class GiteaWorker():
                     self.logger.warning(
                         f"{repoName} {stuID} {stuName} h{hwNum} dir missing")
                     scores[stuName]['indvFailSubmit'] = 1
-                for path in [
-                        os.path.join('hwrepos', repoName, f"h{hwNum}", fn)
-                        for fn in self.mandatoryFiles
-                ]:
-                    if not os.path.exists(path):
-                        self.logger.warning(
-                            f"{repoName} {stuID} {stuName} h{hwNum} file missing"
-                        )
-                        scores[stuName]['indvFailSubmit'] = 1
+                    scores[stuName]['indvComment'].append(
+                        f"h{hwNum} dir missing")
+                else:
+                    for fn, path in [(fn,
+                                    os.path.join('hwrepos', repoName,
+                                                f"h{hwNum}", fn))
+                                    for fn in self.mandatoryFiles]:
+                        if not os.path.exists(path):
+                            self.logger.warning(
+                                f"{repoName} {stuID} {stuName} h{hwNum}/{fn} file missing"
+                            )
+                            scores[stuName]['indvFailSubmit'] = 1
+                            scores[stuName]['indvComment'].append(
+                                f"h{hwNum}/{fn} file missing")
                 self.logger.debug(f"{repoName} {stuID} {stuName} succeed")
                 if tidy:
                     dirList = os.listdir(os.path.join('hwrepos', repoName))
@@ -87,8 +96,12 @@ class GiteaWorker():
                             ], dirList))
                     if dirList:
                         self.logger.warning(
-                            f"{repoName} {stuID} {stuName} untidy {dirList.__repr__()}")
+                            f"{repoName} {stuID} {stuName} untidy {dirList.__repr__()}"
+                        )
                         scores[stuName]['indvUntidy'] = 1
+                        scores[stuName]['indvComment'].append(
+                            f"individual branch redundant files: {dirList.__repr__()}"
+                        )
                     if os.path.exists(hwDir):
                         dirList = os.listdir(hwDir)
                         dirList = list(
@@ -97,9 +110,12 @@ class GiteaWorker():
                                 startswith("README."), dirList))
                         if dirList:
                             self.logger.warning(
-                                f"{repoName} {stuID} {stuName} h{hwNum} untidy {dirList.__repr__()}"
+                                f"{repoName} {stuID} {stuName} h{hwNum}/ untidy {dirList.__repr__()}"
                             )
                             scores[stuName]['indvUntidy'] = 1
+                            scores[stuName]['indvComment'].append(
+                                f"individual branch redundant files: {dirList.__repr__()}"
+                            )
             except Exception:
                 self.logger.error(f"{repoName} {stuID} {stuName} error")
                 self.logger.error(traceback.format_exc())
@@ -108,13 +124,15 @@ class GiteaWorker():
     def checkGroupProcess(self, groupNum, hwNum):
         tidy = self.args.tidy
         repoName = f"hgroup-{groupNum:02}"
-        if not os.path.exists(os.path.join('hwrepos', repoName)):
+        repoDir = os.path.join('hwrepos', repoName)
+        hwDir = os.path.join(repoDir, f"h{hwNum}")
+        if not os.path.exists(repoDir):
             repo = git.Repo.clone_from(
                 f"https://focs.ji.sjtu.edu.cn/git/vg101/{repoName}",
-                os.path.join('hwrepos', repoName),
+                repoDir,
                 branch='master')
         else:
-            repo = git.Repo(os.path.join('hwrepos', repoName))
+            repo = git.Repo(repoDir)
         repo.git.checkout("master", "-f")
         repo.git.fetch("--tags", "-f")
         tagNames = [tag.name for tag in repo.tags]
@@ -122,6 +140,7 @@ class GiteaWorker():
             stuName: {
                 "groupFailSubmit": 0,
                 "groupUntidy": 0,
+                "groupComment": [],
             }
             for _, stuName in self.hgroups[repoName]
         }
@@ -129,23 +148,27 @@ class GiteaWorker():
             self.logger.warning(f"{repoName} tags/h{hwNum} missing")
             for _, stuName in self.hgroups[repoName]:
                 scores[stuName]['groupFailSubmit'] = 1
+                scores[stuName]['groupComment'].append(
+                    f"tags/h{hwNum} missing")
             return
         repo.git.checkout(f"tags/h{hwNum}", "-f")
-        if not os.path.exists(os.path.join('hwrepos', repoName, f"h{hwNum}")):
+        if not os.path.exists(hwDir):
             self.logger.warning(f"{repoName} h{hwNum} dir missing")
             for _, stuName in self.hgroups[repoName]:
                 scores[stuName]['groupFailSubmit'] = 1
-        for path in [
-                os.path.join('hwrepos', repoName, f"h{hwNum}", fn)
-                for fn in self.mandatoryFiles
-        ]:
-            if not os.path.exists(path):
-                self.logger.warning(f"{repoName} h{hwNum} file missing")
-                for _, stuName in self.hgroups[repoName]:
-                    scores[stuName]['groupFailSubmit'] = 1
+                scores[stuName]['groupComment'].append(f"h{hwNum} dir missing")
+        else:
+            for fn, path in [(fn, os.path.join(hwDir, fn))
+                            for fn in self.mandatoryFiles]:
+                if not os.path.exists(path):
+                    self.logger.warning(f"{repoName} h{hwNum}/{fn} file missing")
+                    for _, stuName in self.hgroups[repoName]:
+                        scores[stuName]['groupFailSubmit'] = 1
+                        scores[stuName]['groupComment'].append(
+                            f"h{hwNum}/{fn} missing")
         self.logger.debug(f"{repoName} checkout to tags/h{hwNum} succeed")
         if tidy:
-            dirList = os.listdir(os.path.join('hwrepos', repoName))
+            dirList = os.listdir(repoDir)
             dirList = list(
                 filter(
                     lambda x: x not in
@@ -155,6 +178,22 @@ class GiteaWorker():
                 self.logger.warning(f"{repoName} untidy {dirList.__repr__()}")
                 for _, stuName in self.hgroups[repoName]:
                     scores[stuName]['groupUntidy'] = 1
+                    scores[stuName]['groupComment'].append(
+                        f"master branch redundant files: {dirList.__repr__()}")
+            if os.path.exists(hwDir):
+                dirList = os.listdir(hwDir)
+                dirList = list(
+                    filter(
+                        lambda x: not x.startswith("ex") and not x.startswith(
+                            "README."), dirList))
+                if dirList:
+                    self.logger.warning(
+                        f"{repoName} h{hwNum} untidy {dirList.__repr__()}")
+                    for _, stuName in self.hgroups[repoName]:
+                        scores[stuName]['groupUntidy'] = 1
+                        scores[stuName]['groupComment'].append(
+                            f"master branch redundant files: {dirList.__repr__()}"
+                        )
         return scores
 
     def checkProjProcess(self, id_, name, projNum, milestoneNum):
@@ -171,7 +210,8 @@ class GiteaWorker():
                 self.logger.warning(f"{repoName} branch master missing")
                 return
             repo.git.checkout(f"master", "-f")
-            repo.git.pull("origin", "master", "--rebase", "-f")
+            repo.git.reset('--hard')
+            repo.git.pull("origin", "master", "-f")
             repo.git.reset('--hard')
             repo.git.clean("-d", "-f", "-x")
         if not list(
@@ -196,14 +236,16 @@ class GiteaWorker():
         hwNum = self.args.hw
         with multiprocessing.Pool(self.processCount) as p:
             res = p.starmap(self.checkIndvProcess,
-                            [(i, hwNum) for i in range(26)])
+                            [(i, hwNum)
+                             for i in range(len(self.hgroups.keys()))])
         return {k: v for d in res for k, v in d.items()}
 
     def checkGroup(self):
         hwNum, tidy = self.args.hw, self.args.tidy
         with multiprocessing.Pool(self.processCount) as p:
             res = p.starmap(self.checkGroupProcess,
-                            [(i, hwNum, tidy) for i in range(26)])
+                            [(i, hwNum)
+                             for i in range(len(self.hgroups.keys()))])
         return {k: v for d in res for k, v in d.items()}
 
     def checkProj(self, projNum, milestoneNum):
