@@ -1,6 +1,7 @@
 from shutil import ignore_patterns, copytree, rmtree
 from util import Logger
 import multiprocessing
+import traceback
 import git
 import os
 import re
@@ -26,7 +27,8 @@ class GiteaWorker():
             [word[0].capitalize() + word[1:] for word in eng.split()])
         return f"{eng}{id_}-p{projNum}"
 
-    def checkIndvProcess(self, groupNum, hwNum, tidy):
+    def checkIndvProcess(self, groupNum, hwNum):
+        tidy = self.args.tidy
         repoName = f"hgroup-{groupNum:02}"
         if not os.path.exists(os.path.join('hwrepos', repoName)):
             repo = git.Repo.clone_from(
@@ -54,12 +56,14 @@ class GiteaWorker():
                 repo.git.checkout(f"{stuID}", "-f")
                 repo.git.pull("origin", f"{stuID}", "--rebase", "-f")
                 repo.git.reset(f"origin/{stuID}", "--hard")
+                repo.git.clean("-d", "-f", "-x")
                 if self.args.dir:
                     copytree(os.path.join('hwrepos', repoName),
-                            os.path.join('indv', f"{repoName} {stuID} {stuName}"),
-                            ignore=ignore_patterns('.git'))
-                if not os.path.exists(
-                        os.path.join('hwrepos', repoName, f"h{hwNum}")):
+                             os.path.join('indv',
+                                          f"{repoName} {stuID} {stuName}"),
+                             ignore=ignore_patterns('.git'))
+                hwDir = os.path.join('hwrepos', repoName, f"h{hwNum}")
+                if not os.path.exists(hwDir):
                     self.logger.warning(
                         f"{repoName} {stuID} {stuName} h{hwNum} dir missing")
                     scores[stuName]['indvFailSubmit'] = 1
@@ -78,18 +82,31 @@ class GiteaWorker():
                     dirList = list(
                         filter(
                             lambda x: x not in [
-                                "README.md", ".git",
-                                *[f"h{n}" for n in range(20)]
+                                "README.md", "README.txt", "README.rst",
+                                ".git", *[f"h{n}" for n in range(20)]
                             ], dirList))
                     if dirList:
                         self.logger.warning(
-                            f"{repoName} {stuID} {stuName} untidy")
+                            f"{repoName} {stuID} {stuName} untidy {dirList.__repr__()}")
                         scores[stuName]['indvUntidy'] = 1
-            except:
+                    if os.path.exists(hwDir):
+                        dirList = os.listdir(hwDir)
+                        dirList = list(
+                            filter(
+                                lambda x: not x.startswith("ex") and not x.
+                                startswith("README."), dirList))
+                        if dirList:
+                            self.logger.warning(
+                                f"{repoName} {stuID} {stuName} h{hwNum} untidy {dirList.__repr__()}"
+                            )
+                            scores[stuName]['indvUntidy'] = 1
+            except Exception:
                 self.logger.error(f"{repoName} {stuID} {stuName} error")
+                self.logger.error(traceback.format_exc())
         return scores
 
-    def checkGroupProcess(self, groupNum, hwNum, tidy):
+    def checkGroupProcess(self, groupNum, hwNum):
+        tidy = self.args.tidy
         repoName = f"hgroup-{groupNum:02}"
         if not os.path.exists(os.path.join('hwrepos', repoName)):
             repo = git.Repo.clone_from(
@@ -135,7 +152,7 @@ class GiteaWorker():
                     ["README.md", ".git", *[f"h{n}" for n in range(20)]],
                     dirList))
             if dirList:
-                self.logger.warning(f"{repoName} untidy")
+                self.logger.warning(f"{repoName} untidy {dirList.__repr__()}")
                 for _, stuName in self.hgroups[repoName]:
                     scores[stuName]['groupUntidy'] = 1
         return scores
@@ -156,6 +173,7 @@ class GiteaWorker():
             repo.git.checkout(f"master", "-f")
             repo.git.pull("origin", "master", "--rebase", "-f")
             repo.git.reset('--hard')
+            repo.git.clean("-d", "-f", "-x")
         if not list(
                 filter(lambda x: x.lower().startswith('readme'),
                        os.listdir(repoDir))):
@@ -175,10 +193,10 @@ class GiteaWorker():
         if self.args.dir:
             if os.path.exists(os.path.join('indv')):
                 rmtree(os.path.join('indv'))
-        hwNum, tidy = self.args.hw, self.args.tidy
+        hwNum = self.args.hw
         with multiprocessing.Pool(self.processCount) as p:
             res = p.starmap(self.checkIndvProcess,
-                            [(i, hwNum, tidy) for i in range(26)])
+                            [(i, hwNum) for i in range(26)])
         return {k: v for d in res for k, v in d.items()}
 
     def checkGroup(self):

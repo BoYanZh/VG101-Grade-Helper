@@ -93,11 +93,13 @@ class JOJWorker():
         if not os.path.exists(filePath):
             self.logger.warning(f"{groupName} h{hwNum} {fn} not exist")
             return 0
+        if os.path.exists(filePath + ".zip"): os.remove(filePath + ".zip")
         with zipfile.ZipFile(filePath + ".zip", mode='w') as zf:
             zf.write(filePath, fn)
         res = self.getProblemResult(jojInfo["homeworkID"], problemID,
                                     filePath + ".zip", jojInfo["lang"],
                                     groupName, fn, hwNum)
+        os.remove(filePath + ".zip")
         return res
 
     def checkGroupJOJ(self, jojInfo):
