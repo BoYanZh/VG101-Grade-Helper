@@ -7,7 +7,7 @@ import os
 import re
 
 
-class GiteaWorker():
+class GitWorker():
     def __init__(self,
                  args,
                  hgroups,
@@ -92,7 +92,7 @@ class GiteaWorker():
                         scores[stuName]['indvFailSubmit'] = 1
                         scores[stuName]['indvComment'].append(
                             f"individual branch h{hwNum}/{fn} file missing")
-                    if not list(filter(GiteaWorker.isREADME,
+                    if not list(filter(GitWorker.isREADME,
                                        os.listdir(hwDir))):
                         self.logger.warning(
                             f"{repoName} {stuID} {stuName} h{hwNum}/README file missing"
@@ -105,7 +105,7 @@ class GiteaWorker():
                     filter(
                         lambda x: x not in [
                             ".git", *[f"h{n}" for n in range(20)]
-                        ] and not GiteaWorker.isREADME(x),
+                        ] and not GitWorker.isREADME(x),
                         os.listdir(repoDir)))
                 if dirList:
                     self.logger.warning(
@@ -120,7 +120,7 @@ class GiteaWorker():
                     dirList = list(
                         filter(
                             lambda x: not x.startswith("ex") and
-                            not GiteaWorker.isREADME(x), dirList))
+                            not GitWorker.isREADME(x), dirList))
                     if dirList:
                         self.logger.warning(
                             f"{repoName} {stuID} {stuName} h{hwNum}/ untidy {dirList.__repr__()}"
@@ -180,7 +180,7 @@ class GiteaWorker():
                     scores[stuName]['groupFailSubmit'] = 1
                     scores[stuName]['groupComment'].append(
                         f"master branch h{hwNum}/{fn} missing")
-            if not list(filter(GiteaWorker.isREADME, os.listdir(hwDir))):
+            if not list(filter(GitWorker.isREADME, os.listdir(hwDir))):
                 self.logger.warning(f"{repoName} h{hwNum}/README file missing")
                 for _, stuName in self.hgroups[repoName]:
                     scores[stuName]['groupFailSubmit'] = 1
@@ -192,7 +192,7 @@ class GiteaWorker():
         dirList = list(
             filter(
                 lambda x: x not in [".git", *[f"h{n}" for n in range(20)]] and
-                not GiteaWorker.isREADME(x), dirList))
+                not GitWorker.isREADME(x), dirList))
         if dirList:
             self.logger.warning(f"{repoName} untidy {dirList.__repr__()}")
             for _, stuName in self.hgroups[repoName]:
@@ -203,7 +203,7 @@ class GiteaWorker():
             dirList = os.listdir(hwDir)
             dirList = list(
                 filter(
-                    lambda x: not x.startswith("ex") and not GiteaWorker.
+                    lambda x: not x.startswith("ex") and not GitWorker.
                     isREADME(x), dirList))
             if dirList:
                 self.logger.warning(
@@ -232,7 +232,7 @@ class GiteaWorker():
             repo.git.pull("origin", "master", "-f")
             repo.git.reset('--hard')
             repo.git.clean("-d", "-f", "-x")
-        if not list(filter(GiteaWorker.isREADME, os.listdir(repoDir))):
+        if not list(filter(GitWorker.isREADME, os.listdir(repoDir))):
             self.logger.warning(f"{repoName} README missing")
         if milestoneNum:
             tagNames = [tag.name for tag in repo.tags]
