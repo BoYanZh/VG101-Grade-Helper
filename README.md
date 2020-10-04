@@ -23,8 +23,8 @@ optional arguments:
   -a, --all             check all
   -s, --score           generate score
   -t, --tidy            check tidy
-  -d, --dir             create dir for indiviual submission
-  -i, --indv            check indiviual submission
+  -d, --dir             create dir for individual submission
+  -i, --indv            check individual submission
   -g, --group           check group submission
   -j, --joj             check joj score
   -u, --upload          upload score to canvas
@@ -54,3 +54,7 @@ Please modify `JOJ_INFO` for different homework.
 - [x] Any group submission that is more than 24 hours late will be rejected. **(-2.5 marks)**
 - [x] For each exercise, the final submission must pass at least 25% of the test cases. **(-0.25 mark per exercise, up to -0.5)**
 - [x] For a homework the final submission must pass at least 50% of all the test cases. **(-0.5 mark)**
+
+## Tips:
+
+You need set a default grade for assignments on canvas before running the script, otherwise you can not get their submissions and edit scores.

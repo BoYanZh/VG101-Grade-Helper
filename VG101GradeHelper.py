@@ -25,11 +25,11 @@ def parse():
     parser.add_argument('-d',
                         '--dir',
                         action='store_true',
-                        help='create dir for indiviual submission')
+                        help='create dir for individual submission')
     parser.add_argument('-i',
                         '--indv',
                         action='store_true',
-                        help='check indiviual submission')
+                        help='check individual submission')
     parser.add_argument('-g',
                         '--group',
                         action='store_true',
