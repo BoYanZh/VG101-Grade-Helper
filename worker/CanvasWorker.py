@@ -37,11 +37,16 @@ class CanvasWorker():
             for _ in range(scoreInfo.get(key, 0)):
                 score += value[0]
                 comment.append(f"{value[1]}, {value[0]}")
-        comment.extend(
-            scoreInfo.get("indvComment", []) +
-            scoreInfo.get("groupComment", []) +
-            scoreInfo.get("jojComment", []))
-        if not comment: comment = ['good job']
+        if not comment:
+            comment = ['good job']
+        else:
+            comment.insert(0, "Genral Info:")
+            comment.append("")
+            comment.append("Detail:")
+            comment.extend(
+                scoreInfo.get("indvComment", []) +
+                scoreInfo.get("groupComment", []) +
+                scoreInfo.get("jojComment", []))
         return {
             'submission': {
                 'posted_grade': score
@@ -62,12 +67,12 @@ class CanvasWorker():
             name = currentUser.name.strip()
             if name not in self.names: continue
             data = self.generateHomeworkData(self.scores[name])
-            self.logger.debug(data.__repr__())
-            # submission.edit(**data)
+            self.logger.debug(f"{name} {data.__repr__()}")
+            submission.edit(**data)
 
     def exportScores(self, fileName):
         json.dump(self.scores,
                   open(fileName, "w"),
                   ensure_ascii=False,
                   indent=4)
-        self.logger.debug("score dump to score.json succeed")
+        self.logger.debug(f"score dump to {fileName} succeed")

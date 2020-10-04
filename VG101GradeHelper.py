@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 
-from worker import CanvasWorker, GiteaWorker, JOJWorker
+from worker import CanvasWorker, GitWorker, JOJWorker
 from settings import *
 
 
@@ -62,12 +62,12 @@ if __name__ == "__main__":
     pwd = os.getcwd()
     args = parse()
     indvScores, groupScores, jojScores = {}, {}, {}
-    giteaWorker = GiteaWorker(args, hgroups,
+    gitWorker = GitWorker(args, hgroups,
                               [item[0] for item in JOJ_INFO["problemInfo"]])
     if args.indv:
-        indvScores = giteaWorker.checkIndv()
+        indvScores = gitWorker.checkIndv()
     if args.group:
-        groupScores = giteaWorker.checkGroup()
+        groupScores = gitWorker.checkGroup()
     if args.joj:
         jojWorker = JOJWorker(args, JOJ_COURSE_ID, SID, hgroups)
         jojScores = jojWorker.checkGroupJOJ(JOJ_INFO)
@@ -78,4 +78,4 @@ if __name__ == "__main__":
         if args.upload:
             canvasWorker.grade2Canvas()
     if args.proj:
-        giteaWorker.checkProj(args.proj, args.ms)
+        gitWorker.checkProj(args.proj, args.ms)
