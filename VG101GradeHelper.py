@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 
-from worker import CanvasWorker, GitWorker, JOJWorker
+from worker import CanvasWorker, GitWorker, JOJWorker, GiteaWorker
 from settings import *
 
 
@@ -16,6 +16,11 @@ def parse():
     parser.add_argument('-h', '--hw', type=int, help='# homework')
     parser.add_argument('-p', '--proj', type=int, help='# project')
     parser.add_argument('-m', '--ms', type=int, help='# milestone')
+    parser.add_argument('-r',
+                        '--rejudge',
+                        type=int,
+                        default=-1,
+                        help='rejudge group num or stu ID')
     parser.add_argument('-a', '--all', action='store_true', help='check all')
     parser.add_argument('-s',
                         '--score',
@@ -63,7 +68,7 @@ if __name__ == "__main__":
     args = parse()
     indvScores, groupScores, jojScores = {}, {}, {}
     gitWorker = GitWorker(args, hgroups,
-                              [item[0] for item in JOJ_INFO["problemInfo"]])
+                          [item[0] for item in JOJ_INFO["problemInfo"]])
     if args.indv:
         indvScores = gitWorker.checkIndv()
     if args.group:
@@ -78,4 +83,7 @@ if __name__ == "__main__":
         if args.upload:
             canvasWorker.grade2Canvas()
     if args.proj:
-        gitWorker.checkProj(args.proj, args.ms)
+        projScores = gitWorker.checkProj(args.proj, args.ms)
+        giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME, GITEA_TOKEN,
+                                  hgroups)
+        giteaWorker.raiseIssues(projScores)

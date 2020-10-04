@@ -1,10 +1,9 @@
 from shutil import ignore_patterns, copytree, rmtree
-from util import Logger
+from util import Logger, getProjRepoName
 import multiprocessing
 import traceback
 import git
 import os
-import re
 
 
 class GitWorker():
@@ -26,13 +25,6 @@ class GitWorker():
         if len(fn) < 6: return False
         if len(fn) == 6: return fn == "readme"
         return fn[:7] == "readme."
-
-    def checkProjRepoName(self, arg):
-        id_, name, projNum, *_ = arg
-        eng = re.sub('[\u4e00-\u9fa5]', '', name)
-        eng = ''.join(
-            [word[0].capitalize() + word[1:] for word in eng.split()])
-        return f"{eng}{id_}-p{projNum}"
 
     def checkIndvProcess(self, groupNum, hwNum):
         tidy = self.args.tidy
@@ -65,8 +57,8 @@ class GitWorker():
                     scores[stuName]['indvComment'].append(
                         "individual branch individual branch missing")
                     continue
-                repo.git.checkout(f"{stuID}", "-f")
                 repo.git.reset('--hard')
+                repo.git.checkout(f"{stuID}", "-f")
                 repo.git.pull("origin", f"{stuID}", "-f")
                 repo.git.reset(f"origin/{stuID}", "--hard")
                 repo.git.clean("-d", "-f", "-x")
@@ -92,8 +84,7 @@ class GitWorker():
                         scores[stuName]['indvFailSubmit'] = 1
                         scores[stuName]['indvComment'].append(
                             f"individual branch h{hwNum}/{fn} file missing")
-                    if not list(filter(GitWorker.isREADME,
-                                       os.listdir(hwDir))):
+                    if not list(filter(GitWorker.isREADME, os.listdir(hwDir))):
                         self.logger.warning(
                             f"{repoName} {stuID} {stuName} h{hwNum}/README file missing"
                         )
@@ -105,29 +96,28 @@ class GitWorker():
                     filter(
                         lambda x: x not in [
                             ".git", *[f"h{n}" for n in range(20)]
-                        ] and not GitWorker.isREADME(x),
-                        os.listdir(repoDir)))
+                        ] and not GitWorker.isREADME(x), os.listdir(repoDir)))
                 if dirList:
                     self.logger.warning(
-                        f"{repoName} {stuID} {stuName} untidy {dirList.__repr__()}"
+                        f"{repoName} {stuID} {stuName} untidy {', '.join(dirList)}"
                     )
                     scores[stuName]['indvUntidy'] = 1
                     scores[stuName]['indvComment'].append(
-                        f"individual branch redundant files: {dirList.__repr__()}"
+                        f"individual branch redundant files: {', '.join(dirList)}"
                     )
                 if os.path.exists(hwDir):
                     dirList = os.listdir(hwDir)
                     dirList = list(
                         filter(
-                            lambda x: not x.startswith("ex") and
-                            not GitWorker.isREADME(x), dirList))
+                            lambda x: not x.startswith("ex") and not GitWorker.
+                            isREADME(x), dirList))
                     if dirList:
                         self.logger.warning(
-                            f"{repoName} {stuID} {stuName} h{hwNum}/ untidy {dirList.__repr__()}"
+                            f"{repoName} {stuID} {stuName} h{hwNum}/ untidy {', '.join(dirList)}"
                         )
                         scores[stuName]['indvUntidy'] = 1
                         scores[stuName]['indvComment'].append(
-                            f"individual branch redundant files: {dirList.__repr__()}"
+                            f"individual branch redundant files: {', '.join(dirList)}"
                         )
             except Exception:
                 self.logger.error(f"{repoName} {stuID} {stuName} error")
@@ -146,6 +136,7 @@ class GitWorker():
                 branch='master')
         else:
             repo = git.Repo(repoDir)
+        repo.git.reset('--hard')
         repo.git.checkout("master", "-f")
         repo.git.fetch("--tags", "-f")
         tagNames = [tag.name for tag in repo.tags]
@@ -164,6 +155,7 @@ class GitWorker():
                 scores[stuName]['groupComment'].append(
                     f"tags/h{hwNum} missing")
             return scores
+        repo.git.reset('--hard')
         repo.git.checkout(f"tags/h{hwNum}", "-f")
         if not os.path.exists(hwDir):
             self.logger.warning(f"{repoName} h{hwNum} dir missing")
@@ -194,11 +186,11 @@ class GitWorker():
                 lambda x: x not in [".git", *[f"h{n}" for n in range(20)]] and
                 not GitWorker.isREADME(x), dirList))
         if dirList:
-            self.logger.warning(f"{repoName} untidy {dirList.__repr__()}")
+            self.logger.warning(f"{repoName} untidy {', '.join(dirList)}")
             for _, stuName in self.hgroups[repoName]:
                 scores[stuName]['groupUntidy'] = 1
                 scores[stuName]['groupComment'].append(
-                    f"master branch redundant files: {dirList.__repr__()}")
+                    f"master branch redundant files: {', '.join(dirList)}")
         if os.path.exists(hwDir):
             dirList = os.listdir(hwDir)
             dirList = list(
@@ -207,16 +199,22 @@ class GitWorker():
                     isREADME(x), dirList))
             if dirList:
                 self.logger.warning(
-                    f"{repoName} h{hwNum} untidy {dirList.__repr__()}")
+                    f"{repoName} h{hwNum} untidy {', '.join(dirList)}")
                 for _, stuName in self.hgroups[repoName]:
                     scores[stuName]['groupUntidy'] = 1
                     scores[stuName]['groupComment'].append(
-                        f"master branch redundant files: {dirList.__repr__()}")
+                        f"master branch redundant files: {', '.join(dirList)}")
         return scores
 
     def checkProjProcess(self, id_, name, projNum, milestoneNum):
-        repoName = self.checkProjRepoName([id_, name, projNum, milestoneNum])
+        stuName = name
+        repoName = getProjRepoName([id_, name, projNum, milestoneNum])
         repoDir = os.path.join('projrepos', f'p{projNum}', repoName)
+        scores = {
+            stuName: {
+                "projComment": [],
+            }
+        }
         if not os.path.exists(repoDir):
             repo = git.Repo.clone_from(
                 f"https://focs.ji.sjtu.edu.cn/git/vg101/{repoName}", repoDir)
@@ -225,43 +223,55 @@ class GitWorker():
             repo.git.fetch()
             remoteBranches = [ref.name for ref in repo.remote().refs]
             if 'origin/master' not in remoteBranches:
-                self.logger.warning(f"{repoName} branch master missing")
-                return
-            repo.git.checkout(f"master", "-f")
+                self.logger.warning(f"{repoName} master branch missing")
+                scores[stuName]["projComment"].append(f"master branch missing")
+                return scores
             repo.git.reset('--hard')
+            repo.git.checkout(f"master", "-f")
             repo.git.pull("origin", "master", "-f")
             repo.git.reset('--hard')
             repo.git.clean("-d", "-f", "-x")
         if not list(filter(GitWorker.isREADME, os.listdir(repoDir))):
-            self.logger.warning(f"{repoName} README missing")
+            self.logger.warning(f"{repoName} README file missing")
+            scores[stuName]["projComment"].append(f"README file missing")
         if milestoneNum:
             tagNames = [tag.name for tag in repo.tags]
             if f"m{milestoneNum}" not in tagNames:
                 self.logger.warning(f"{repoName} tags/m{milestoneNum} missing")
-                return
+                scores[stuName]["projComment"].append(
+                    f"tags/m{milestoneNum} missing")
+                return scores
+            repo.git.reset('--hard')
             repo.git.checkout(f"tags/m{milestoneNum}", "-f")
             self.logger.debug(
                 f"{repoName} checkout to tags/m{milestoneNum} succeed")
         else:
             self.logger.debug(f"{repoName} pull succeed")
+        return scores
 
     def checkIndv(self):
         if self.args.dir:
             if os.path.exists(os.path.join('indv')):
                 rmtree(os.path.join('indv'))
         hwNum = self.args.hw
-        with multiprocessing.Pool(self.processCount) as p:
-            res = p.starmap(self.checkIndvProcess,
-                            [(i, hwNum)
-                             for i in range(len(self.hgroups.keys()))])
+        if self.args.rejudge < 0:
+            with multiprocessing.Pool(self.processCount) as p:
+                res = p.starmap(self.checkIndvProcess,
+                                [(i, hwNum)
+                                for i in range(len(self.hgroups.keys()))])
+        else:
+            res = [self.checkIndvProcess(self.args.rejudge, hwNum)]
         return {k: v for d in res for k, v in d.items()}
 
     def checkGroup(self):
         hwNum = self.args.hw
-        with multiprocessing.Pool(self.processCount) as p:
-            res = p.starmap(self.checkGroupProcess,
-                            [(i, hwNum)
-                             for i in range(len(self.hgroups.keys()))])
+        if self.args.rejudge < 0:
+            with multiprocessing.Pool(self.processCount) as p:
+                res = p.starmap(self.checkGroupProcess,
+                                [(i, hwNum)
+                                 for i in range(len(self.hgroups.keys()))])
+        else:
+            res = [self.checkGroupProcess(self.args.rejudge, hwNum)]
         return {k: v for d in res for k, v in d.items()}
 
     def checkProj(self, projNum, milestoneNum):
@@ -275,4 +285,5 @@ class GitWorker():
         else:
             return
         with multiprocessing.Pool(self.processCount) as p:
-            p.starmap(self.checkProjProcess, infos)
+            res = p.starmap(self.checkProjProcess, infos)
+        return {k: v for d in res for k, v in d.items()}

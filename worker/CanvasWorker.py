@@ -66,6 +66,7 @@ class CanvasWorker():
             if currentUser is None: continue
             name = currentUser.name.strip()
             if name not in self.names: continue
+            if not self.scores[name]: continue
             data = self.generateHomeworkData(self.scores[name])
             self.logger.debug(f"{name} {data.__repr__()}")
             submission.edit(**data)

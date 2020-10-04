@@ -7,3 +7,4 @@ indv/
 hgroups.json
 scores.json
 settings.py
+*.csv

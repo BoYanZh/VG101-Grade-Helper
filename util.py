@@ -1,5 +1,5 @@
 import logging
-
+import re
 
 class Logger():
     _instance = None
@@ -28,3 +28,10 @@ def first(iterable, condition=lambda x: True):
         return next(x for x in iterable if condition(x))
     except StopIteration:
         return None
+
+def getProjRepoName(arg):
+    id_, name, projNum, *_ = arg
+    eng = re.sub('[\u4e00-\u9fa5]', '', name)
+    eng = ''.join(
+        [word[0].capitalize() + word[1:] for word in eng.split()])
+    return f"{eng}{id_}-p{projNum}"
