@@ -94,9 +94,9 @@ class GitWorker():
                 if not tidy: continue
                 dirList = list(
                     filter(
-                        lambda x: x not in [
-                            ".git", *[f"h{n}" for n in range(20)]
-                        ] and not GitWorker.isREADME(x), os.listdir(repoDir)))
+                        lambda x: x not in
+                        [".gitignore", ".git", *[f"h{n}" for n in range(20)]
+                         ] and not GitWorker.isREADME(x), os.listdir(repoDir)))
                 if dirList:
                     self.logger.warning(
                         f"{repoName} {stuID} {stuName} untidy {', '.join(dirList)}"
@@ -183,8 +183,9 @@ class GitWorker():
         dirList = os.listdir(repoDir)
         dirList = list(
             filter(
-                lambda x: x not in [".git", *[f"h{n}" for n in range(20)]] and
-                not GitWorker.isREADME(x), dirList))
+                lambda x: x not in [
+                    ".gitignore", ".git", *[f"h{n}" for n in range(20)]
+                ] and not GitWorker.isREADME(x), dirList))
         if dirList:
             self.logger.warning(f"{repoName} untidy {', '.join(dirList)}")
             for _, stuName in self.hgroups[repoName]:
@@ -258,7 +259,7 @@ class GitWorker():
             with multiprocessing.Pool(self.processCount) as p:
                 res = p.starmap(self.checkIndvProcess,
                                 [(i, hwNum)
-                                for i in range(len(self.hgroups.keys()))])
+                                 for i in range(len(self.hgroups.keys()))])
         else:
             res = [self.checkIndvProcess(self.args.rejudge, hwNum)]
         return {k: v for d in res for k, v in d.items()}
