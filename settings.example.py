@@ -10,7 +10,7 @@ RUBRIC = {
     "indvFailSubmit": [-0.5, 'individual submit absence, -0.5'],
     "indvUntidy": [-0.25, 'individual branch untidy, -0.25'],
     "groupFailSubmit": [-2.5, 'group submit absence, -2.5'],
-    "groupUntidy": [-0.25, 'master branch untidy, -0.25'],
+    "groupUntidy": [-0.25, 'group submit untidy, -0.25'],
     "jojFailHomework": [-0.5, 'JOJ homework not passed, -0.5'],
     "jojFailExercise": [-0.25, 'JOJ exercise not passed, -0.25'],
     "jojFailCompile": [-1, 'JOJ fail to compile, -1'],

@@ -162,7 +162,7 @@ class GitWorker():
             for _, stuName in self.hgroups[repoName]:
                 scores[stuName]['groupFailSubmit'] = 1
                 scores[stuName]['groupComment'].append(
-                    f"master branch h{hwNum} dir missing")
+                    f"tags/h{hwNum} h{hwNum} dir missing")
         else:
             for fn, path in [(fn, os.path.join(hwDir, fn))
                              for fn in self.mandatoryFiles]:
@@ -171,13 +171,13 @@ class GitWorker():
                 for _, stuName in self.hgroups[repoName]:
                     scores[stuName]['groupFailSubmit'] = 1
                     scores[stuName]['groupComment'].append(
-                        f"master branch h{hwNum}/{fn} missing")
+                        f"tags/h{hwNum} h{hwNum}/{fn} missing")
             if not list(filter(GitWorker.isREADME, os.listdir(hwDir))):
                 self.logger.warning(f"{repoName} h{hwNum}/README file missing")
                 for _, stuName in self.hgroups[repoName]:
                     scores[stuName]['groupFailSubmit'] = 1
                     scores[stuName]['groupComment'].append(
-                        f"master branch h{hwNum}/README file missing")
+                        f"tags/h{hwNum} h{hwNum}/README file missing")
         self.logger.debug(f"{repoName} checkout to tags/h{hwNum} succeed")
         if not tidy: return scores
         dirList = os.listdir(repoDir)
@@ -191,7 +191,7 @@ class GitWorker():
             for _, stuName in self.hgroups[repoName]:
                 scores[stuName]['groupUntidy'] = 1
                 scores[stuName]['groupComment'].append(
-                    f"master branch redundant files: {', '.join(dirList)}")
+                    f"tags/h{hwNum} redundant files: {', '.join(dirList)}")
         if os.path.exists(hwDir):
             dirList = os.listdir(hwDir)
             dirList = list(
@@ -204,7 +204,7 @@ class GitWorker():
                 for _, stuName in self.hgroups[repoName]:
                     scores[stuName]['groupUntidy'] = 1
                     scores[stuName]['groupComment'].append(
-                        f"master branch redundant files: {', '.join(dirList)}")
+                        f"tags/h{hwNum} redundant files: {', '.join(dirList)}")
         return scores
 
     def checkProjProcess(self, id_, name, projNum, milestoneNum):
