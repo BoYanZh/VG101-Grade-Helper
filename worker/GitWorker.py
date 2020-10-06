@@ -1,4 +1,6 @@
 from shutil import ignore_patterns, copytree, rmtree
+
+from git import exc
 from util import Logger, getProjRepoName
 import multiprocessing
 import traceback
@@ -57,9 +59,7 @@ class GitWorker():
                     scores[stuName]['indvComment'].append(
                         "individual branch individual branch missing")
                     continue
-                repo.git.reset('--hard')
-                repo.git.rebase(f"origin/{stuID}")
-                repo.git.checkout(f"{stuID}")
+                repo.git.reset('--hard', f"origin/{stuID}")
                 repo.git.clean("-d", "-f", "-x")
                 self.logger.debug(f"{repoName} {stuID} {stuName} pull succeed")
                 if self.args.dir:
@@ -135,8 +135,6 @@ class GitWorker():
                 branch='master')
         else:
             repo = git.Repo(repoDir)
-        repo.git.reset('--hard')
-        repo.git.checkout("master", "-f")
         repo.git.fetch("--tags", "-f")
         tagNames = [tag.name for tag in repo.tags]
         scores = {
@@ -154,8 +152,9 @@ class GitWorker():
                 scores[stuName]['groupComment'].append(
                     f"tags/h{hwNum} missing")
             return scores
-        repo.git.reset('--hard')
-        repo.git.checkout(f"tags/h{hwNum}", "-f")
+        repo.git.reset('--hard', f"origin/master")
+        repo.git.clean("-d", "-f", "-x")
+        repo.git.checkout(f"tags/h{hwNum}")
         if not os.path.exists(hwDir):
             self.logger.warning(f"{repoName} h{hwNum} dir missing")
             for _, stuName in self.hgroups[repoName]:
@@ -220,27 +219,25 @@ class GitWorker():
                 f"https://focs.ji.sjtu.edu.cn/git/vg101/{repoName}", repoDir)
         else:
             repo = git.Repo(os.path.join('projrepos', f'p{projNum}', repoName))
-            repo.git.fetch()
+            repo.git.fetch('origin')
             remoteBranches = [ref.name for ref in repo.remote().refs]
             if 'origin/master' not in remoteBranches:
                 self.logger.warning(f"{repoName} master branch missing")
                 scores[stuName]["projComment"].append(f"master branch missing")
                 return scores
-            repo.git.reset('--hard')
-            repo.git.rebase("origin/master")
-            repo.git.checkout("master")
+            repo.git.reset('--hard', 'origin/master')
             repo.git.clean("-d", "-f", "-x")
         if not list(filter(GitWorker.isREADME, os.listdir(repoDir))):
             self.logger.warning(f"{repoName} README file missing")
             scores[stuName]["projComment"].append(f"README file missing")
         if milestoneNum:
+            repo.git.fetch("--tags", "-f")
             tagNames = [tag.name for tag in repo.tags]
             if f"m{milestoneNum}" not in tagNames:
                 self.logger.warning(f"{repoName} tags/m{milestoneNum} missing")
                 scores[stuName]["projComment"].append(
                     f"tags/m{milestoneNum} missing")
                 return scores
-            repo.git.reset('--hard')
             repo.git.checkout(f"tags/m{milestoneNum}", "-f")
             self.logger.debug(
                 f"{repoName} checkout to tags/m{milestoneNum} succeed")
