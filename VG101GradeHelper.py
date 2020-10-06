@@ -15,6 +15,7 @@ def parse():
                         help='show this help message and exit')
     parser.add_argument('-h', '--hw', type=int, help='# homework')
     parser.add_argument('-p', '--proj', type=int, help='# project')
+    parser.add_argument('-f', '--feedback', type=int, help='give feedback to project')
     parser.add_argument('-m', '--ms', type=int, help='# milestone')
     parser.add_argument('-r',
                         '--rejudge',
@@ -84,6 +85,7 @@ if __name__ == "__main__":
             canvasWorker.grade2Canvas()
     if args.proj:
         projScores = gitWorker.checkProj(args.proj, args.ms)
-        giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME, GITEA_TOKEN,
-                                  hgroups)
-        giteaWorker.raiseIssues(projScores)
+        if args.feedback:
+            giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME, GITEA_TOKEN,
+                                      hgroups)
+            giteaWorker.raiseIssues(projScores)

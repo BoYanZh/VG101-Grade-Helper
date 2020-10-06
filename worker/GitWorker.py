@@ -58,9 +58,8 @@ class GitWorker():
                         "individual branch individual branch missing")
                     continue
                 repo.git.reset('--hard')
-                repo.git.checkout(f"{stuID}", "-f")
-                repo.git.pull("origin", f"{stuID}", "-f")
-                repo.git.reset(f"origin/{stuID}", "--hard")
+                repo.git.rebase(f"origin/{stuID}")
+                repo.git.checkout(f"{stuID}")
                 repo.git.clean("-d", "-f", "-x")
                 self.logger.debug(f"{repoName} {stuID} {stuName} pull succeed")
                 if self.args.dir:
@@ -228,9 +227,8 @@ class GitWorker():
                 scores[stuName]["projComment"].append(f"master branch missing")
                 return scores
             repo.git.reset('--hard')
-            repo.git.checkout(f"master", "-f")
-            repo.git.pull("origin", "master", "-f")
-            repo.git.reset('--hard')
+            repo.git.rebase("origin/master")
+            repo.git.checkout("master")
             repo.git.clean("-d", "-f", "-x")
         if not list(filter(GitWorker.isREADME, os.listdir(repoDir))):
             self.logger.warning(f"{repoName} README file missing")
