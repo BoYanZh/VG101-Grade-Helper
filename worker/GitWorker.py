@@ -176,7 +176,7 @@ class GitWorker():
             for fn, path in [(fn, os.path.join(hwDir, fn))
                              for fn in self.mandatoryFiles]:
                 if os.path.exists(path):
-                    if not self.passCodeQuality(path, self.language):
+                    if not passCodeQuality(path, self.language):
                         for _, stuName in self.hgroups[repoName]:
                             scores[stuName]["groupLowCodeQuality"] = 1
                             scores[stuName]["groupComment"].append(
