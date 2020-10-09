@@ -71,8 +71,9 @@ if __name__ == "__main__":
     pwd = os.getcwd()
     args = parse()
     indvScores, groupScores, jojScores = {}, {}, {}
-    gitWorker = GitWorker(args, hgroups,
-                          [item[0] for item in JOJ_INFO["problemInfo"]])
+    gitWorker = GitWorker(args, hgroups, JOJ_INFO["lang"],
+                          [item[0] for item in JOJ_INFO["problemInfo"]
+                           ]) if args.indv or args.group or args.proj else None
     if args.indv:
         indvScores = gitWorker.checkIndv()
     if args.group:
