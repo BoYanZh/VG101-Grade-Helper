@@ -6,6 +6,8 @@ It helps you begin from clone repo from Gitea to giving grade to canvas with com
 
 ## Installation & Usage
 
+First install [ctags](https://github.com/universal-ctags/ctags) for C code quality checking.
+
 ```bash
 $ pip3 install -r requirement.txt
 $ mv hgroups.example.json hgroups.json
