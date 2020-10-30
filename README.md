@@ -53,7 +53,7 @@ Please modify `JOJ_INFO` for different homework.
 ## Features
 
 - [x] At least two days before the group deadline, all students should individually complete all the mandatory tasks and push their work to their personal branch of their group git repository and issue a pull request. Students late for the individual submission must open an issue featuring: (i) apologies to the reviewer, (ii) clear explanations on why the work is late, and (iii) a request for a new deadline fitting the reviewer. The reviewer is allowed to reject the request and should set the deadline based on his/her own schedule. **(-0.5 mark)**
-- [ ] ~~A student should provide feedbacks to at least one teammate for each mandatory exercise. Low quality reviews will be ignored. Each student should receive feedbacks on his individual submission. e.g. for a three students group: student1 → student2 → student3 → student1. **(-1 mark)**~~
+- [x] A student should provide feedbacks to at least one teammate for each mandatory exercise. Low quality reviews will be ignored. Each student should receive feedbacks on his individual submission. e.g. for a three students group: student1 → student2 → student3 → student1. **(-1 mark)**
 - [x] The final group submission, done on the master branch of the group repository, should successfully compile or be interpreted. **(-1 mark)**
 - [x] Any group submission that is more than 24 hours late will be rejected. **(-2.5 marks)**
 - [x] For each exercise, the final submission must pass at least 25% of the test cases. **(-0.25 mark per exercise, up to -0.5)**

@@ -31,6 +31,8 @@ def parse():
                         action='store_true',
                         help='generate score')
     parser.add_argument('-t', '--tidy', action='store_true', help='check tidy')
+    # TODO: automatically check moss
+    parser.add_argument('-o', '--moss', action='store_true', help='check moss')
     parser.add_argument('-d',
                         '--dir',
                         action='store_true',
@@ -71,13 +73,25 @@ if __name__ == "__main__":
     pwd = os.getcwd()
     args = parse()
     indvScores, groupScores, jojScores = {}, {}, {}
-    gitWorker = GitWorker(args, hgroups, JOJ_INFO["lang"],
-                          [item[0] for item in JOJ_INFO["problemInfo"]
-                           ]) if args.indv or args.group or args.proj else None
+    mandatoryFiles = MANDATORY_FILES
+    mandatoryFiles.extend(
+        [fn for item in JOJ_INFO["problemInfo"] for fn in item[0]])
+    mandatoryFiles = list(set(mandatoryFiles))
+    gitWorker = GitWorker(
+        args, hgroups, JOJ_INFO["lang"], mandatoryFiles,
+        OPTIONAL_FILES) if args.indv or args.group or args.proj else None
+    giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME,
+                                GITEA_TOKEN, hgroups)
     if args.indv:
         indvScores = gitWorker.checkIndv()
     if args.group:
         groupScores = gitWorker.checkGroup()
+        tmpScores = giteaWorker.checkReview()
+        for key in groupScores.keys():
+            groupScores[key] = {
+                **groupScores.get(key, {}),
+                **tmpScores.get(key, {})
+            }
     if args.joj:
         jojWorker = JOJWorker(args, JOJ_COURSE_ID, SID, hgroups)
         jojScores = jojWorker.checkGroupJOJ(JOJ_INFO)
@@ -90,6 +104,4 @@ if __name__ == "__main__":
     if args.proj:
         projScores = gitWorker.checkProj(args.proj, args.ms)
         if args.feedback:
-            giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME,
-                                      GITEA_TOKEN, hgroups)
             giteaWorker.raiseIssues(projScores)

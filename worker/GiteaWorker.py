@@ -11,6 +11,11 @@ class GiteaWorker():
             item[1]: item[0]
             for items in hgroups.values() for item in items
         }
+        self.ids = {
+            item[0]: item[1]
+            for items in hgroups.values() for item in items
+        }
+        self.hgroups = hgroups
         self.baseUrl = baseUrl
         self.orgName = orgName
         self.sess = requests.Session()
@@ -29,3 +34,20 @@ class GiteaWorker():
             }
             req = self.sess.post(url, data)
             self.logger.debug(f"{repoName} issue {req.status_code} {req.text}")
+
+    def checkReview(self):
+        hwNum = self.args.hw
+        res = {key: {"noReview": 1} for key in self.names.keys()}
+        for repoName, users in self.hgroups.items():
+            url = f"{self.baseUrl}/repos/{self.orgName}/{repoName}/pulls"
+            pulls = self.sess.get(url).json()
+            for pull in pulls:
+                if not pull["title"].startswith(f"h{hwNum}"): continue
+                url = f"{self.baseUrl}/repos/{self.orgName}/{repoName}/pulls/{pull['number']}/reviews"
+                self.logger.info(f"{repoName} h{hwNum} get pr: {url}")
+                for item in self.sess.get(url).json():
+                    stuID = ''.join(
+                        [s for s in item['user']['full_name'] if s.isdigit()])
+                    name = self.ids[stuID]
+                    res[name]["noReview"] = 0
+        return res

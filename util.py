@@ -1,4 +1,6 @@
+import subprocess
 import logging
+import os
 import re
 
 
@@ -39,7 +41,26 @@ def getProjRepoName(arg):
 
 
 def passCodeQuality(path, language):
-    with open(path, encoding='utf-8', errors='replace') as f:
-        res = f.read()
     if language == "matlab":
+        with open(path, encoding='utf-8', errors='replace') as f:
+            res = f.read()
         return "global " not in res
+    if language == "c":
+        res = subprocess.check_output(
+            ["ctags", "-R", "-x", "--sort=yes", "--c-kinds=v", path])
+        lines = res.splitlines()
+        return len([line for line in lines if b"const" not in line]) == 0
+
+
+def getAllFiles(root):
+    for f in os.listdir(root):
+        if os.path.isfile(os.path.join(root, f)):
+            yield os.path.join(f)
+    dirs = [
+        d for d in os.listdir(root)
+        if os.path.isdir(os.path.join(root, d)) and d != ".git"
+    ]
+    for d in dirs:
+        dirfiles = getAllFiles(os.path.join(root, d))
+        for f in dirfiles:
+            yield os.path.join(d, f)

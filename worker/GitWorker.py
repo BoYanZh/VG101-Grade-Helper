@@ -1,5 +1,5 @@
+from util import Logger, getProjRepoName, passCodeQuality, getAllFiles
 from shutil import ignore_patterns, copytree, rmtree
-from util import Logger, getProjRepoName, passCodeQuality
 import multiprocessing
 import traceback
 import git
@@ -12,6 +12,7 @@ class GitWorker():
                  hgroups,
                  language,
                  mandatoryFiles,
+                 optionalFiles,
                  logger=Logger(),
                  processCount=16):
         self.args = args
@@ -20,6 +21,8 @@ class GitWorker():
         self.logger = logger
         self.processCount = processCount
         self.mandatoryFiles = mandatoryFiles
+        self.optionalFiles = optionalFiles
+        self.moss = None
 
     @classmethod
     def isREADME(cls, fn):
@@ -40,7 +43,7 @@ class GitWorker():
                 branch="master")
         else:
             repo = git.Repo(repoDir)
-        repo.git.fetch("--tags", "--all")
+        repo.git.fetch("--all", "-f")
         remoteBranches = [ref.name for ref in repo.remote().refs]
         scores = {
             stuName: {
@@ -75,8 +78,10 @@ class GitWorker():
                     scores[stuName]["indvComment"].append(
                         f"individual branch h{hwNum} dir missing")
                 else:
-                    for fn, path in [(fn, os.path.join(hwDir, fn))
-                                     for fn in self.mandatoryFiles]:
+                    for fn, path in [
+                        (fn, os.path.join(hwDir, fn)) for fn in
+                        [*self.mandatoryFiles, *self.optionalFiles]
+                    ]:
                         if os.path.exists(path):
                             if not passCodeQuality(path, self.language):
                                 scores[stuName]["indvLowCodeQuality"] = 1
@@ -86,12 +91,13 @@ class GitWorker():
                                     f"{repoName} {stuID} {stuName} {fn} low quality"
                                 )
                             continue
-                        self.logger.warning(
-                            f"{repoName} {stuID} {stuName} h{hwNum}/{fn} file missing"
-                        )
-                        scores[stuName]["indvFailSubmit"] = 1
-                        scores[stuName]["indvComment"].append(
-                            f"individual branch h{hwNum}/{fn} file missing")
+                        if fn in self.mandatoryFiles:
+                            self.logger.warning(
+                                f"{repoName} {stuID} {stuName} h{hwNum}/{fn} file missing"
+                            )
+                            scores[stuName]["indvFailSubmit"] = 1
+                            scores[stuName]["indvComment"].append(
+                                f"individual branch h{hwNum}/{fn} file missing")
                     if not list(filter(GitWorker.isREADME, os.listdir(hwDir))):
                         self.logger.warning(
                             f"{repoName} {stuID} {stuName} h{hwNum}/README file missing"
@@ -117,8 +123,9 @@ class GitWorker():
                     dirList = os.listdir(hwDir)
                     dirList = list(
                         filter(
-                            lambda x: not x.startswith("ex") and not GitWorker.
-                            isREADME(x), dirList))
+                            lambda x: x not in self.mandatoryFiles and x not in
+                            self.optionalFiles and not GitWorker.isREADME(x),
+                            dirList))
                     if dirList:
                         self.logger.warning(
                             f"{repoName} {stuID} {stuName} h{hwNum}/ untidy {', '.join(dirList)}"
@@ -144,7 +151,7 @@ class GitWorker():
                 branch="master")
         else:
             repo = git.Repo(repoDir)
-        repo.git.fetch("--tags", "--all")
+        repo.git.fetch("--tags", "--all", "-f")
         tagNames = [tag.name for tag in repo.tags]
         scores = {
             stuName: {
@@ -173,8 +180,10 @@ class GitWorker():
                 scores[stuName]["groupComment"].append(
                     f"tags/h{hwNum} h{hwNum} dir missing")
         else:
-            for fn, path in [(fn, os.path.join(hwDir, fn))
-                             for fn in self.mandatoryFiles]:
+            for fn, path in [
+                (fn, os.path.join(hwDir, fn))
+                    for fn in [*self.mandatoryFiles, *self.optionalFiles]
+            ]:
                 if os.path.exists(path):
                     if not passCodeQuality(path, self.language):
                         for _, stuName in self.hgroups[repoName]:
@@ -183,11 +192,12 @@ class GitWorker():
                                 f"group {fn} low quality")
                         self.logger.warning(f"{repoName} {fn} low quality")
                     continue
-                self.logger.warning(f"{repoName} h{hwNum}/{fn} file missing")
-                for _, stuName in self.hgroups[repoName]:
-                    scores[stuName]["groupFailSubmit"] = 1
-                    scores[stuName]["groupComment"].append(
-                        f"tags/h{hwNum} h{hwNum}/{fn} missing")
+                if fn in self.mandatoryFiles:
+                    self.logger.warning(f"{repoName} h{hwNum}/{fn} file missing")
+                    for _, stuName in self.hgroups[repoName]:
+                        scores[stuName]["groupFailSubmit"] = 1
+                        scores[stuName]["groupComment"].append(
+                            f"tags/h{hwNum} h{hwNum}/{fn} missing")
             if not list(filter(GitWorker.isREADME, os.listdir(hwDir))):
                 self.logger.warning(f"{repoName} h{hwNum}/README file missing")
                 for _, stuName in self.hgroups[repoName]:
@@ -212,8 +222,8 @@ class GitWorker():
             dirList = os.listdir(hwDir)
             dirList = list(
                 filter(
-                    lambda x: not x.startswith("ex") and not GitWorker.
-                    isREADME(x), dirList))
+                    lambda x: x not in self.mandatoryFiles and x not in self.
+                    optionalFiles and not GitWorker.isREADME(x), dirList))
             if dirList:
                 self.logger.warning(
                     f"{repoName} h{hwNum} untidy {', '.join(dirList)}")
@@ -237,7 +247,7 @@ class GitWorker():
                 f"https://focs.ji.sjtu.edu.cn/git/vg101/{repoName}", repoDir)
         else:
             repo = git.Repo(os.path.join("projrepos", f"p{projNum}", repoName))
-            repo.git.fetch("--tags", "--all")
+            repo.git.fetch("--tags", "--all", "-f")
             remoteBranches = [ref.name for ref in repo.remote().refs]
             if "origin/master" not in remoteBranches:
                 self.logger.warning(f"{repoName} master branch missing")
@@ -246,7 +256,7 @@ class GitWorker():
             repo.git.reset("--hard", "origin/master")
             repo.git.clean("-d", "-f", "-x")
         if milestoneNum:
-            repo.git.fetch("--tags", "--all")
+            repo.git.fetch("--tags", "--all", "-f")
             tagNames = [tag.name for tag in repo.tags]
             if f"m{milestoneNum}" not in tagNames:
                 self.logger.warning(f"{repoName} tags/m{milestoneNum} missing")
@@ -259,12 +269,22 @@ class GitWorker():
             if not list(filter(GitWorker.isREADME, os.listdir(repoDir))):
                 self.logger.warning(f"{repoName} README file missing")
                 scores[stuName]["projComment"].append(f"README file missing")
+            language = ["matlab", "c", "cpp"]
             if projNum == 1:
                 for fn in list(
                         filter(lambda x: x.endswith(".m"),
                                os.listdir(repoDir))):
                     path = os.path.join(repoDir, fn)
-                    if not passCodeQuality(path, "matlab"):
+                    if not passCodeQuality(path, language[projNum - 1]):
+                        self.logger.warning(f"{repoName} {fn} low quality")
+                        scores[stuName]["projComment"].append(
+                            f"{fn} low quality")
+            elif projNum == 2:
+                for fn in getAllFiles(repoDir):
+                    if (fn.endswith(".c")
+                            or fn.endswith(".h")) and not passCodeQuality(
+                                os.path.join(repoDir, fn),
+                                language[projNum - 1]):
                         self.logger.warning(f"{repoName} {fn} low quality")
                         scores[stuName]["projComment"].append(
                             f"{fn} low quality")

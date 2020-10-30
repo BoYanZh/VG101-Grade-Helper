@@ -13,6 +13,7 @@ class CanvasWorker():
                  indvScores,
                  groupScores,
                  jojScores,
+                 totalScores=None,
                  logger=Logger()):
         self.args = args
         self.rubric = rubric
@@ -22,13 +23,16 @@ class CanvasWorker():
         self.assignments = self.course.get_assignments()
         self.logger = logger
         self.scores = {}
-        self.names = names
-        for key in names:
-            self.scores[key] = {
-                **indvScores.get(key, {}),
-                **groupScores.get(key, {}),
-                **jojScores.get(key, {})
-            }
+        if totalScores is None:
+            self.names = names
+            for key in names:
+                self.scores[key] = {
+                    **indvScores.get(key, {}),
+                    **groupScores.get(key, {}),
+                    **jojScores.get(key, {})
+                }
+        else:
+            self.scores = totalScores
 
     def generateHomeworkData(self, scoreInfo):
         score = 0
@@ -49,7 +53,7 @@ class CanvasWorker():
                 scoreInfo.get("jojComment", []))
         return {
             'submission': {
-                'posted_grade': score
+                'posted_grade': max(score, -2.5)
             },
             'comment': {
                 'text_comment': '\n'.join(comment)

@@ -70,7 +70,6 @@ class JOJWorker():
                          zipPath,
                          lang,
                          groupName='',
-                         fn='',
                          hwNum=0):
         tryTime = 0
         while True:
@@ -79,27 +78,32 @@ class JOJWorker():
             if response.status_code == 200:
                 break
             self.logger.error(
-                f"{groupName} h{hwNum} {fn} upload error, code {response.status_code}, url {response.url}"
+                f"{groupName} h{hwNum} {problemID} upload error, code {response.status_code}, url {response.url}"
             )
             time.sleep(1)
         self.logger.debug(
-            f"{groupName} h{hwNum} {fn} upload succeed, url {response.url}")
+            f"{groupName} h{hwNum} {problemID} upload succeed, url {response.url}")
         return self.getProblemStatus(response.url)
 
-    def checkGroupJOJProcess(self, groupNum, hwNum, jojInfo, fn, problemID):
+    def checkGroupJOJProcess(self, groupNum, hwNum, jojInfo, fns, problemID):
         groupName = f"hgroup-{groupNum:02}"
         hwDir = os.path.join('hwrepos', groupName, f"h{hwNum}")
-        filePath = os.path.join(hwDir, fn)
-        if not os.path.exists(filePath):
-            self.logger.warning(f"{groupName} h{hwNum} {fn} not exist")
-            return 0
-        if os.path.exists(filePath + ".zip"): os.remove(filePath + ".zip")
-        with zipfile.ZipFile(filePath + ".zip", mode='w') as zf:
-            zf.write(filePath, fn)
+        if not os.path.exists(hwDir): return 0
+        zipPath = os.path.join(hwDir, problemID) + ".zip"
+        if os.path.exists(zipPath): os.remove(zipPath)
+        with zipfile.ZipFile(zipPath, mode='w') as zf:
+            for fn in fns:
+                filePath = os.path.join(hwDir, fn)
+                if not os.path.exists(filePath):
+                    if not fn.endswith(".h"):
+                        self.logger.warning(f"{groupName} h{hwNum} {fn} not exist")
+                        return 0
+                else:
+                    zf.write(filePath, fn)
         res = self.getProblemResult(jojInfo["homeworkID"], problemID,
-                                    filePath + ".zip", jojInfo["lang"],
-                                    groupName, fn, hwNum)
-        os.remove(filePath + ".zip")
+                                    zipPath, jojInfo["lang"],
+                                    groupName, hwNum)
+        # os.remove(zipPath)
         return res
 
     def checkGroupJOJ(self, jojInfo):
@@ -109,8 +113,8 @@ class JOJWorker():
             with multiprocessing.Pool(len(jojInfo["problemInfo"])) as p:
                 scores = p.starmap(
                     self.checkGroupJOJProcess,
-                    [[i, hwNum, jojInfo, fn, problemID]
-                     for fn, problemID, _ in jojInfo["problemInfo"]])
+                    [[i, hwNum, jojInfo, fns, problemID]
+                     for fns, problemID, _ in jojInfo["problemInfo"]])
             scores = [(scores[i], jojInfo["problemInfo"][i][2])
                       for i in range(len(scores))]
             self.logger.info(f"{key} h{hwNum} score {scores.__repr__()}")
