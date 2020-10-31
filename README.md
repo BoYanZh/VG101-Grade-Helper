@@ -60,6 +60,7 @@ Please modify `JOJ_INFO` for different homework.
 - [x] Any group submission that is more than 24 hours late will be rejected. **(-2.5 marks)**
 - [x] For each exercise, the final submission must pass at least 25% of the test cases. **(-0.25 mark per exercise, up to -0.5)**
 - [x] For a homework the final submission must pass at least 50% of all the test cases. **(-0.5 mark)**
+- [x] Using global variable, breaking the rule in code_quality.pdf. **(-0.5 mark)**
 
 ## Tips:
 
