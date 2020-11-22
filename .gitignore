@@ -5,6 +5,7 @@ projrepos/
 indv/
 *.log
 hgroups.json
+pgroups.json
 scores.json
 settings.py
 *.csv

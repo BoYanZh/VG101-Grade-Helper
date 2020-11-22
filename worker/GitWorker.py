@@ -10,6 +10,7 @@ class GitWorker():
     def __init__(self,
                  args,
                  hgroups,
+                 pgroups,
                  language,
                  mandatoryFiles,
                  optionalFiles,
@@ -17,6 +18,7 @@ class GitWorker():
                  processCount=4):
         self.args = args
         self.hgroups = hgroups
+        self.pgroups = pgroups
         self.language = language
         self.logger = logger
         self.processCount = processCount
@@ -276,13 +278,11 @@ class GitWorker():
             if not list(filter(GitWorker.isREADME, os.listdir(repoDir))):
                 self.logger.warning(f"{repoName} README file missing")
                 scores[stuName]["projComment"].append(f"README file missing")
-            language = ["matlab", "c", "cpp"]
+            language = ["matlab", "c"]
             if projNum == 1:
-                for fn in list(
-                        filter(lambda x: x.endswith(".m"),
-                               os.listdir(repoDir))):
-                    path = os.path.join(repoDir, fn)
-                    if not passCodeQuality(path, language[projNum - 1]):
+                for fn in getAllFiles(repoDir):
+                    if (fn.endswith(".m")) and not passCodeQuality(
+                            os.path.join(repoDir, fn), language[projNum - 1]):
                         self.logger.warning(f"{repoName} {fn} low quality")
                         scores[stuName]["projComment"].append(
                             f"{fn} low quality")
@@ -294,6 +294,56 @@ class GitWorker():
                                 language[projNum - 1]):
                         self.logger.warning(f"{repoName} {fn} low quality")
                         scores[stuName]["projComment"].append(
+                            f"{fn} low quality")
+        else:
+            self.logger.debug(f"{repoName} pull succeed")
+        return scores
+
+    def checkProj3Process(self, groupNum, milestoneNum):
+        repoName = f"p3group-{groupNum:02}"
+        repoDir = os.path.join("projrepos", "p3", repoName)
+        students = self.pgroups[repoName]
+        scores = {stuInfo[1]: {"projComment": []} for stuInfo in students}
+        if not os.path.exists(repoDir):
+            repo = git.Repo.clone_from(
+                f"https://focs.ji.sjtu.edu.cn/git/vg101/{repoName}", repoDir)
+        else:
+            repo = git.Repo(os.path.join("projrepos", f"p3", repoName))
+            repo.git.fetch("--tags", "--all", "-f")
+            remoteBranches = [ref.name for ref in repo.remote().refs]
+            if "origin/master" not in remoteBranches:
+                self.logger.warning(f"{repoName} master branch missing")
+                for stuInfo in students:
+                    scores[stuInfo[1]]["projComment"].append(
+                        f"master branch missing")
+                return scores
+            repo.git.reset("--hard", "origin/master")
+            repo.git.clean("-d", "-f", "-x")
+        if milestoneNum:
+            repo.git.fetch("--tags", "--all", "-f")
+            tagNames = [tag.name for tag in repo.tags]
+            if f"m{milestoneNum}" not in tagNames:
+                self.logger.warning(f"{repoName} tags/m{milestoneNum} missing")
+                for stuInfo in students:
+                    scores[stuInfo[1]]["projComment"].append(
+                        f"tags/m{milestoneNum} missing")
+                return scores
+            repo.git.checkout(f"tags/m{milestoneNum}", "-f")
+            self.logger.debug(
+                f"{repoName} checkout to tags/m{milestoneNum} succeed")
+            if not list(filter(GitWorker.isREADME, os.listdir(repoDir))):
+                self.logger.warning(f"{repoName} README file missing")
+                for stuInfo in students:
+                    scores[stuInfo[1]]["projComment"].append(
+                        f"README file missing")
+            for fn in getAllFiles(repoDir):
+                if (any(
+                    (fn.endswith(suf)
+                     for suf in [".c", ".cc", ".cpp", ".hpp", ".h", ".cxx"]))
+                    ) and not passCodeQuality(os.path.join(repoDir, fn), "cc"):
+                    self.logger.warning(f"{repoName} {fn} low quality")
+                    for stuInfo in students:
+                        scores[stuInfo[1]]["projComment"].append(
                             f"{fn} low quality")
         else:
             self.logger.debug(f"{repoName} pull succeed")
@@ -326,14 +376,14 @@ class GitWorker():
 
     def checkProj(self, projNum, milestoneNum):
         milestoneNum = 0 if milestoneNum is None else milestoneNum
+        res = {}
         if projNum in [1, 2]:
             infos = [[*info, projNum, milestoneNum]
                      for hgroup in self.hgroups.values() for info in hgroup]
+            with multiprocessing.Pool(self.processCount) as p:
+                res = p.starmap(self.checkProjProcess, infos)
         elif projNum in [3]:
-            infos = []
-            return
-        else:
-            return
-        with multiprocessing.Pool(self.processCount) as p:
-            res = p.starmap(self.checkProjProcess, infos)
+            infos = [[i, milestoneNum] for i in range(len(self.pgroups.keys()))]
+            with multiprocessing.Pool(self.processCount) as p:
+                res = p.starmap(self.checkProj3Process, infos)
         return {k: v for d in res for k, v in d.items()}

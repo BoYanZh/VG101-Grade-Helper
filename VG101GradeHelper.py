@@ -69,6 +69,7 @@ def parse():
 
 if __name__ == "__main__":
     hgroups = json.load(open("hgroups.json"))
+    pgroups = json.load(open("pgroups.json"))
     names = [item[1] for value in hgroups.values() for item in value]
     pwd = os.getcwd()
     args = parse()
@@ -78,7 +79,7 @@ if __name__ == "__main__":
         [fn for item in JOJ_INFO["problemInfo"] for fn in item[0]])
     mandatoryFiles = list(set(mandatoryFiles))
     gitWorker = GitWorker(
-        args, hgroups, JOJ_INFO["lang"], mandatoryFiles,
+        args, hgroups, pgroups, JOJ_INFO["lang"], mandatoryFiles,
         OPTIONAL_FILES) if args.indv or args.group or args.proj else None
     giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME, GITEA_TOKEN,
                               hgroups)
