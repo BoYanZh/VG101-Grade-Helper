@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from util import Logger
+from util import Logger, getProjRepoName
 import multiprocessing
 import requests
 import zipfile
@@ -64,13 +64,7 @@ class JOJWorker():
             for result in resultSet
         ])
 
-    def getProblemResult(self,
-                         homeworkID,
-                         problemID,
-                         zipPath,
-                         lang,
-                         groupName='',
-                         hwNum=0):
+    def getProblemResult(self, homeworkID, problemID, zipPath, lang):
         tryTime = 0
         while True:
             tryTime += 1
@@ -78,12 +72,13 @@ class JOJWorker():
             if response.status_code == 200:
                 break
             self.logger.error(
-                f"{groupName} h{hwNum} {problemID} upload error, code {response.status_code}, url {response.url}"
+                f"{zipPath} {problemID} upload error, code {response.status_code}, url {response.url}"
             )
             time.sleep(1)
+        res = self.getProblemStatus(response.url)
         self.logger.debug(
-            f"{groupName} h{hwNum} {problemID} upload succeed, url {response.url}")
-        return self.getProblemStatus(response.url)
+            f"{zipPath} upload succeed, url {response.url}, result {res}")
+        return res
 
     def checkGroupJOJProcess(self, groupNum, hwNum, jojInfo, fns, problemID):
         groupName = f"hgroup-{groupNum:02}"
@@ -96,13 +91,13 @@ class JOJWorker():
                 filePath = os.path.join(hwDir, fn)
                 if not os.path.exists(filePath):
                     if not fn.endswith(".h"):
-                        self.logger.warning(f"{groupName} h{hwNum} {fn} not exist")
+                        self.logger.warning(
+                            f"{groupName} h{hwNum} {fn} not exist")
                         return 0
                 else:
                     zf.write(filePath, fn)
-        res = self.getProblemResult(jojInfo["homeworkID"], problemID,
-                                    zipPath, jojInfo["lang"],
-                                    groupName, hwNum)
+        res = self.getProblemResult(jojInfo["homeworkID"], problemID, zipPath,
+                                    jojInfo["lang"])
         # os.remove(zipPath)
         return res
 
@@ -141,6 +136,44 @@ class JOJWorker():
                     "jojFailCompile": jojFailCompile,
                     "jojComment": comments,
                 }
+        return res
+
+    def checkProjJOJProcess(self, repoName, homeworkID, problemID):
+        def zipdir(path, zipPath, zf):
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    if os.path.join(root, file) == zipPath:
+                        continue
+                    if 'cmake-build-debug' in root or '.git' in root:
+                        continue
+                    zf.write(
+                        os.path.join(root, file),
+                        os.path.relpath(os.path.join(root, file),
+                                        os.path.join(path, '.')))
+
+        projDir = os.path.join('projrepos', f'p{self.args.proj}', repoName)
+        if not os.path.exists(projDir): return 0
+        zipPath = os.path.join(projDir, problemID) + ".zip"
+        if os.path.exists(zipPath): os.remove(zipPath)
+        with zipfile.ZipFile(zipPath, mode='w') as zf:
+            zipdir(projDir, zipPath, zf)
+        if self.getProblemResult(homeworkID, problemID, zipPath, "cmake") == 0:
+            return 'JOJ copmile success with CMake'
+        if self.getProblemResult(homeworkID, problemID, zipPath, "make") == 0:
+            return 'JOJ copmile success with GNU Make'
+        return 'JOJ copmile failure with both GNU Make and CMake'
+
+    def checkProjJOJ(self, jojInfo):
+        res = {}
+        projNum, milestoneNum = self.args.proj, self.args.ms
+        homeworkID, problemID = jojInfo[projNum]["homeworkID"], jojInfo[projNum]["problemID"]
+        infos = [[*info, projNum, milestoneNum]
+                 for hgroup in self.hgroups.values() for info in hgroup]
+        for id_, name, projNum, milestoneNum in infos:
+            repoName = getProjRepoName([id_, name, projNum, milestoneNum])
+            comments = [self.checkProjJOJProcess(repoName, homeworkID,
+                                                problemID)]
+            res[name] = {"jojComment": comments}
         return res
 
 

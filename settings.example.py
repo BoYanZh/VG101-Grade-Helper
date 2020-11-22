@@ -37,3 +37,13 @@ MANDATORY_FILES = []
 OPTIONAL_FILES = [
     "ex3.c", "ex4.c", "ex1.h", "ex2.h", "ex3.h", "ex4.h", "ex5.h", "main.c"
 ]
+PROJ_JOJ_INFO = {
+    2: {
+        "homeworkID": "5facbf7c9fedcc000661ff9d",
+        "problemID": "5facbee89fedcc000661ff8e"
+    },
+    3: {
+        "homeworkID": "5facbf7c9fedcc000661ff9d",
+        "problemID": "5facbee89fedcc000661ff8e"
+    }
+}

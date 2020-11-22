@@ -14,7 +14,7 @@ class GitWorker():
                  mandatoryFiles,
                  optionalFiles,
                  logger=Logger(),
-                 processCount=16):
+                 processCount=4):
         self.args = args
         self.hgroups = hgroups
         self.language = language
@@ -97,7 +97,8 @@ class GitWorker():
                             )
                             scores[stuName]["indvFailSubmit"] = 1
                             scores[stuName]["indvComment"].append(
-                                f"individual branch h{hwNum}/{fn} file missing")
+                                f"individual branch h{hwNum}/{fn} file missing"
+                            )
                     if not list(filter(GitWorker.isREADME, os.listdir(hwDir))):
                         self.logger.warning(
                             f"{repoName} {stuID} {stuName} h{hwNum}/README file missing"
@@ -193,7 +194,8 @@ class GitWorker():
                         self.logger.warning(f"{repoName} {fn} low quality")
                     continue
                 if fn in self.mandatoryFiles:
-                    self.logger.warning(f"{repoName} h{hwNum}/{fn} file missing")
+                    self.logger.warning(
+                        f"{repoName} h{hwNum}/{fn} file missing")
                     for _, stuName in self.hgroups[repoName]:
                         scores[stuName]["groupFailSubmit"] = 1
                         scores[stuName]["groupComment"].append(
@@ -206,6 +208,11 @@ class GitWorker():
                         f"tags/h{hwNum} h{hwNum}/README file missing")
         if not tidy: return scores
         dirList = os.listdir(repoDir)
+        if os.path.exists(os.path.join(repoDir, ".gitea")):
+            dirList.extend([
+                fn for fn in os.listdir(os.path.join(repoDir, ".gitea"))
+                if fn != "pull_request_template.md"
+            ])
         dirList = list(
             filter(
                 lambda x: x not in [

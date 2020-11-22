@@ -25,12 +25,14 @@ class GiteaWorker():
         for key, value in scores.items():
             if not value.get('projComment'):
                 value['projComment'] = ['good job']
+            if not value.get('jojComment'):
+                value['jojComment'] = ['']
             id_ = self.names[key]
             repoName = getProjRepoName([id_, key, self.args.proj])
             url = f"{self.baseUrl}/repos/{self.orgName}/{repoName}/issues"
             data = {
                 "title": f"m{self.args.ms} feedback",
-                "body": '\n'.join(value['projComment']),
+                "body": '\n'.join([*value['projComment'], *value['jojComment']]),
             }
             req = self.sess.post(url, data)
             self.logger.debug(f"{repoName} issue {req.status_code} {req.text}")
@@ -48,6 +50,8 @@ class GiteaWorker():
                 for item in self.sess.get(url).json():
                     stuID = ''.join(
                         [s for s in item['user']['full_name'] if s.isdigit()])
-                    name = self.ids[stuID]
-                    res[name]["noReview"] = 0
+                    if self.ids.get(stuID):
+                        name = self.ids[stuID]
+                        res[name]["noReview"] = 0
+                        self.logger.info(f"{repoName} h{hwNum} {stuID} {name} reviewed")
         return res

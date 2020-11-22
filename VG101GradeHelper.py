@@ -80,8 +80,8 @@ if __name__ == "__main__":
     gitWorker = GitWorker(
         args, hgroups, JOJ_INFO["lang"], mandatoryFiles,
         OPTIONAL_FILES) if args.indv or args.group or args.proj else None
-    giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME,
-                                GITEA_TOKEN, hgroups)
+    giteaWorker = GiteaWorker(args, GITEA_BASE_URL, ORG_NAME, GITEA_TOKEN,
+                              hgroups)
     if args.indv:
         indvScores = gitWorker.checkIndv()
     if args.group:
@@ -92,9 +92,10 @@ if __name__ == "__main__":
                 **groupScores.get(key, {}),
                 **tmpScores.get(key, {})
             }
-    if args.joj:
-        jojWorker = JOJWorker(args, JOJ_COURSE_ID, SID, hgroups)
-        jojScores = jojWorker.checkGroupJOJ(JOJ_INFO)
+    if args.indv or args.group:
+        if args.joj:
+            jojWorker = JOJWorker(args, JOJ_COURSE_ID, SID, hgroups)
+            jojScores = jojWorker.checkGroupJOJ(JOJ_INFO)
     if args.score:
         canvasWorker = CanvasWorker(args, RUBRIC, CANVAS_TOKEN, COURSE_ID,
                                     names, indvScores, groupScores, jojScores)
@@ -103,5 +104,13 @@ if __name__ == "__main__":
             canvasWorker.grade2Canvas()
     if args.proj:
         projScores = gitWorker.checkProj(args.proj, args.ms)
+        if args.joj:
+            jojWorker = JOJWorker(args, JOJ_COURSE_ID, SID, hgroups)
+            jojScores = jojWorker.checkProjJOJ(PROJ_JOJ_INFO)
+            for key in projScores.keys():
+                projScores[key] = {
+                    **projScores.get(key, {}),
+                    **jojScores.get(key, {})
+                }
         if args.feedback:
             giteaWorker.raiseIssues(projScores)
